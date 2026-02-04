@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "linar_exile",
+  "version": "${version}",
+  "name": "Linar Exile",
+  "description": "Personalized gameplay adjustments for Linar_li.",
+  "authors": ["Codex"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.linar.exile.LinarExileMod"],
+    "client": ["com.linar.exile.LinarExileClient"]
+  },
+  "mixins": [
+    "linar_exile.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric": "*",
+    "minecraft": "1.21.10"
+  }
+}
