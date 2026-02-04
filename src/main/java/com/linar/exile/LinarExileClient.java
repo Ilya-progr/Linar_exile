@@ -19,7 +19,8 @@ public class LinarExileClient implements ClientModInitializer {
     public void onInitializeClient() {
         abilityKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
             "key.linar_exile.activate_ability",
-            InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_G),
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_G,
             "category.linar_exile"
         ));
 
