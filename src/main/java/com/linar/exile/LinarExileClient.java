@@ -4,9 +4,8 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
@@ -20,8 +19,7 @@ public class LinarExileClient implements ClientModInitializer {
     public void onInitializeClient() {
         abilityKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
             "key.linar_exile.activate_ability",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_G,
+            InputConstants.getKey(GLFW.GLFW_KEY_G, 0),
             "category.linar_exile"
         ));
 
@@ -30,7 +28,7 @@ public class LinarExileClient implements ClientModInitializer {
             if (player != null && LinarExileMod.isLinar(player)) {
                 applyGammaBoost(client);
                 while (abilityKey.consumeClick()) {
-                    ClientPlayNetworking.send(LinarExileMod.ACTIVATE_ABILITY, PacketByteBufs.create());
+                    ClientPlayNetworking.send(new LinarExileMod.ActivateAbilityPayload());
                 }
             } else {
                 restoreGamma(client);

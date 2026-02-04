@@ -7,7 +7,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,9 +25,9 @@ import net.minecraft.world.entity.player.Player;
 
 public class LinarExileMod implements ModInitializer {
     public static final String MOD_ID = "linar_exile";
-    public static final ResourceLocation ACTIVATE_ABILITY = new ResourceLocation(MOD_ID, "activate_ability");
+    public static final ResourceLocation ACTIVATE_ABILITY = ResourceLocation.fromNamespaceAndPath(MOD_ID, "activate_ability");
     private static final String LINAR_NAME = "Linar_li";
-    private static final ResourceLocation SPEED_MODIFIER_ID = new ResourceLocation(MOD_ID, "linar_speed");
+    private static final ResourceLocation SPEED_MODIFIER_ID = ResourceLocation.fromNamespaceAndPath(MOD_ID, "linar_speed");
     private static final double SPEED_MULTIPLIER = 0.5;
     private static final int ABILITY_DURATION_TICKS = 10 * 20;
     private static final int ABILITY_COOLDOWN_TICKS = 15 * 60 * 20;
@@ -32,7 +37,10 @@ public class LinarExileMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        ServerPlayNetworking.registerGlobalReceiver(ACTIVATE_ABILITY, (server, player, handler, buf, responseSender) -> {
+        PayloadTypeRegistry.playC2S().register(ActivateAbilityPayload.TYPE, ActivateAbilityPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ActivateAbilityPayload.TYPE, (payload, context) -> {
+            MinecraftServer server = context.server();
+            ServerPlayer player = context.player();
             server.execute(() -> tryActivateAbility(server, player));
         });
 
@@ -40,7 +48,7 @@ public class LinarExileMod implements ModInitializer {
     }
 
     public static boolean isLinar(Player player) {
-        return player != null && LINAR_NAME.equals(player.getGameProfile().getName());
+        return player != null && LINAR_NAME.equals(player.getName().getString());
     }
 
     public static boolean isAbilityActive(Player player) {
@@ -102,7 +110,7 @@ public class LinarExileMod implements ModInitializer {
             return;
         }
         if (movementSpeed.getModifier(SPEED_MODIFIER_ID) == null) {
-            movementSpeed.addTransientModifier(new AttributeModifier(SPEED_MODIFIER_ID, SPEED_MULTIPLIER, AttributeModifier.Operation.MULTIPLY_TOTAL));
+            movementSpeed.addTransientModifier(new AttributeModifier(SPEED_MODIFIER_ID, SPEED_MULTIPLIER, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
         }
     }
 
@@ -119,10 +127,21 @@ public class LinarExileMod implements ModInitializer {
 
     private static void removeNegativeEffects(ServerPlayer player) {
         for (MobEffectInstance effectInstance : player.getActiveEffects()) {
-            MobEffect effect = effectInstance.getEffect();
-            if (!effect.isBeneficial()) {
+            Holder<MobEffect> effect = effectInstance.getEffect();
+            if (!effect.value().isBeneficial()) {
                 player.removeEffect(effect);
             }
+        }
+    }
+
+    public record ActivateAbilityPayload() implements CustomPacketPayload {
+        public static final Type<ActivateAbilityPayload> TYPE = new Type<>(ACTIVATE_ABILITY);
+        public static final StreamCodec<RegistryFriendlyByteBuf, ActivateAbilityPayload> CODEC =
+            StreamCodec.unit(new ActivateAbilityPayload());
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
         }
     }
 }
