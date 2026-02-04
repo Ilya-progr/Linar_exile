@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -19,6 +20,7 @@ public class LinarExileClient implements ClientModInitializer {
     public void onInitializeClient() {
         abilityKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
             "key.linar_exile.activate_ability",
+            InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_G,
             "category.linar_exile"
         ));

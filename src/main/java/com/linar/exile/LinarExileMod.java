@@ -22,7 +22,7 @@ public class LinarExileMod implements ModInitializer {
     public static final String MOD_ID = "linar_exile";
     public static final ResourceLocation ACTIVATE_ABILITY = new ResourceLocation(MOD_ID, "activate_ability");
     private static final String LINAR_NAME = "Linar_li";
-    private static final UUID SPEED_MODIFIER_ID = UUID.fromString("f6dd1c88-6a2d-4c4b-9894-2d2b3bf4f8c2");
+    private static final ResourceLocation SPEED_MODIFIER_ID = new ResourceLocation(MOD_ID, "linar_speed");
     private static final double SPEED_MULTIPLIER = 0.5;
     private static final int ABILITY_DURATION_TICKS = 10 * 20;
     private static final int ABILITY_COOLDOWN_TICKS = 15 * 60 * 20;
@@ -102,7 +102,7 @@ public class LinarExileMod implements ModInitializer {
             return;
         }
         if (movementSpeed.getModifier(SPEED_MODIFIER_ID) == null) {
-            movementSpeed.addTransientModifier(new AttributeModifier(SPEED_MODIFIER_ID, "Linar ability speed", SPEED_MULTIPLIER, AttributeModifier.Operation.MULTIPLY_TOTAL));
+            movementSpeed.addTransientModifier(new AttributeModifier(SPEED_MODIFIER_ID, SPEED_MULTIPLIER, AttributeModifier.Operation.MULTIPLY_TOTAL));
         }
     }
 

@@ -13,7 +13,7 @@ public class PlayerMixin {
     @Inject(method = "getDestroySpeed", at = @At("RETURN"), cancellable = true)
     private void linarExile$boostMiningSpeed(BlockState state, CallbackInfoReturnable<Float> cir) {
         Player player = (Player) (Object) this;
-        if (!player.level().isClientSide && LinarExileMod.isLinar(player) && LinarExileMod.isAbilityActive(player)) {
+        if (!player.level().isClientSide() && LinarExileMod.isLinar(player) && LinarExileMod.isAbilityActive(player)) {
             cir.setReturnValue(cir.getReturnValue() * 1.5f);
         }
     }
