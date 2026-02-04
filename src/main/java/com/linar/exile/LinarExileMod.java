@@ -1,0 +1,128 @@
+package com.linar.exile;
+
+import com.linar.exile.state.AbilityState;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
+
+public class LinarExileMod implements ModInitializer {
+    public static final String MOD_ID = "linar_exile";
+    public static final ResourceLocation ACTIVATE_ABILITY = new ResourceLocation(MOD_ID, "activate_ability");
+    private static final String LINAR_NAME = "Linar_li";
+    private static final UUID SPEED_MODIFIER_ID = UUID.fromString("f6dd1c88-6a2d-4c4b-9894-2d2b3bf4f8c2");
+    private static final double SPEED_MULTIPLIER = 0.5;
+    private static final int ABILITY_DURATION_TICKS = 10 * 20;
+    private static final int ABILITY_COOLDOWN_TICKS = 15 * 60 * 20;
+
+    private static final Map<UUID, AbilityState> ABILITY_STATES = new ConcurrentHashMap<>();
+    private static long serverTicks = 0;
+
+    @Override
+    public void onInitialize() {
+        ServerPlayNetworking.registerGlobalReceiver(ACTIVATE_ABILITY, (server, player, handler, buf, responseSender) -> {
+            server.execute(() -> tryActivateAbility(server, player));
+        });
+
+        ServerTickEvents.END_SERVER_TICK.register(LinarExileMod::onServerTick);
+    }
+
+    public static boolean isLinar(Player player) {
+        return player != null && LINAR_NAME.equals(player.getGameProfile().getName());
+    }
+
+    public static boolean isAbilityActive(Player player) {
+        AbilityState state = ABILITY_STATES.get(player.getUUID());
+        return state != null && state.isActive(serverTicks);
+    }
+
+    private static void tryActivateAbility(MinecraftServer server, ServerPlayer player) {
+        if (!isLinar(player)) {
+            return;
+        }
+
+        AbilityState state = ABILITY_STATES.computeIfAbsent(player.getUUID(), uuid -> new AbilityState());
+        if (state.isOnCooldown(serverTicks)) {
+            return;
+        }
+
+        state.activate(serverTicks, ABILITY_DURATION_TICKS, ABILITY_COOLDOWN_TICKS);
+        removeNegativeEffects(player);
+        applySpeedModifier(player);
+        player.sendSystemMessage(Component.translatable("message.linar_exile.ability_activated"), true);
+    }
+
+    private static void onServerTick(MinecraftServer server) {
+        serverTicks++;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (!isLinar(player)) {
+                continue;
+            }
+
+            applyMaxHealthPenalty(player);
+
+            AbilityState state = ABILITY_STATES.computeIfAbsent(player.getUUID(), uuid -> new AbilityState());
+            if (state.isActive(serverTicks)) {
+                removeNegativeEffects(player);
+                applySpeedModifier(player);
+            } else {
+                removeSpeedModifier(player);
+            }
+        }
+    }
+
+    private static void applyMaxHealthPenalty(ServerPlayer player) {
+        AttributeInstance maxHealth = player.getAttribute(Attributes.MAX_HEALTH);
+        if (maxHealth == null) {
+            return;
+        }
+        if (maxHealth.getBaseValue() != 18.0) {
+            maxHealth.setBaseValue(18.0);
+            if (player.getHealth() > player.getMaxHealth()) {
+                player.setHealth(player.getMaxHealth());
+            }
+        }
+    }
+
+    private static void applySpeedModifier(ServerPlayer player) {
+        AttributeInstance movementSpeed = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (movementSpeed == null) {
+            return;
+        }
+        if (movementSpeed.getModifier(SPEED_MODIFIER_ID) == null) {
+            movementSpeed.addTransientModifier(new AttributeModifier(SPEED_MODIFIER_ID, "Linar ability speed", SPEED_MULTIPLIER, AttributeModifier.Operation.MULTIPLY_TOTAL));
+        }
+    }
+
+    private static void removeSpeedModifier(ServerPlayer player) {
+        AttributeInstance movementSpeed = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (movementSpeed == null) {
+            return;
+        }
+        AttributeModifier modifier = movementSpeed.getModifier(SPEED_MODIFIER_ID);
+        if (modifier != null) {
+            movementSpeed.removeModifier(modifier);
+        }
+    }
+
+    private static void removeNegativeEffects(ServerPlayer player) {
+        for (MobEffectInstance effectInstance : player.getActiveEffects()) {
+            MobEffect effect = effectInstance.getEffect();
+            if (!effect.isBeneficial()) {
+                player.removeEffect(effect);
+            }
+        }
+    }
+}
